@@ -47,6 +47,7 @@ export default function LoginPage() {
               <label className="block text-sm font-medium text-gray-300 mb-1.5">Password</label>
               <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required className="input-style" />
             </div>
+            <div className="flex justify-end"><Link href="/forgot-password" className="text-sm text-orange-400 hover:text-orange-300">Forgot password?</Link></div>
             <button type="submit" disabled={loading} className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-semibold rounded-lg px-4 py-3 mt-2 transition flex items-center justify-center gap-2">
               {loading ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Signing in...</> : "Sign In"}
             </button>
