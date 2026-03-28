@@ -65,11 +65,12 @@ export default function DashboardPage() {
         <p className="text-gray-400 text-sm mt-0.5">{shop.address || "No address set"} · AI Receptionist Dashboard</p>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         {[
           { label: "Total Calls", value: stats?.total_calls?.toString() ?? "0" },
           { label: "Appointments Booked", value: stats?.appointments_booked?.toString() ?? "0" },
           { label: "Booking Rate", value: stats ? `${stats.conversion_rate}%` : "0%" },
+          { label: "Avg Call Duration", value: formatDuration(stats?.avg_duration_seconds) },
         ].map(({ label, value }) => (
           <div key={label} className="bg-gray-800 border border-gray-700 rounded-2xl p-5">
             <p className="text-sm text-gray-400 mb-3">{label}</p>
