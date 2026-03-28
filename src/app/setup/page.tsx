@@ -17,6 +17,7 @@ export default function SetupPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [checking, setChecking] = useState(true);
+  const [shopCreated, setShopCreated] = useState(false);
   const [shopName, setShopName] = useState("");
   const [address, setAddress] = useState("");
   const [phoneDisplay, setPhoneDisplay] = useState("");
@@ -28,8 +29,7 @@ export default function SetupPage() {
     async function check() {
       const { data } = await supabase.auth.getSession();
       if (!data.session) { router.replace("/login"); return; }
-      try { await getMyShop(); router.replace("/dashboard"); }
-      catch { setChecking(false); }
+      try { await getMyShop(); router.replace("/dashboard"); } catch { setChecking(false); }
     }
     check();
   }, [router]);
@@ -39,14 +39,19 @@ export default function SetupPage() {
   }
 
   async function handleSubmit() {
-    setLoading(true); setError("");
+    setLoading(true);
+    setError("");
     const servicesList = services.filter((s) => s.name.trim()).map((s) => (s.price ? `${s.name.trim()} $${s.price.trim()}` : s.name.trim()));
     try {
-      await createShop({ name: shopName, address, phone_display: phoneDisplay, greeting: greeting || `Thanks for calling ${shopName}, what can we do for you?`, services: servicesList, business_hours: hours });
+      if (!shopCreated) {
+        await createShop({ name: shopName, address, phone_display: phoneDisplay, greeting: greeting || `Thanks for calling ${shopName}, what can we do for you?`, services: servicesList, business_hours: hours });
+        setShopCreated(true);
+      }
       await provisionShop();
       router.push("/dashboard");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Setup failed."); setLoading(false);
+      setError(err instanceof Error ? err.message : "Setup failed.");
+      setLoading(false);
     }
   }
 
@@ -65,6 +70,7 @@ export default function SetupPage() {
             <span className="text-lg font-bold text-white">ShopDesk AI</span>
           </div>
         </div>
+
         <div className="flex items-center justify-center gap-2 mb-8">
           {[1,2,3].map((s) => (
             <div key={s} className="flex items-center gap-2">
@@ -73,8 +79,17 @@ export default function SetupPage() {
             </div>
           ))}
         </div>
+
         <div className="bg-gray-800 rounded-2xl p-8 border border-gray-700">
-          {error && <div className="bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3 mb-6 text-red-400 text-sm">{error}</div>}
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3 mb-6 text-red-400 text-sm">
+              <p>{error}</p>
+              {shopCreated && (
+                <p className="mt-1 text-xs text-red-300">Your shop was saved. Click &quot;Launch&quot; again to retry assigning your AI phone number.</p>
+              )}
+            </div>
+          )}
+
           {step === 1 && (
             <div>
               <h2 className="text-xl font-bold text-white mb-1">Tell us about your shop</h2>
@@ -88,17 +103,16 @@ export default function SetupPage() {
                 ].map(({ label, value, setter, placeholder }) => (
                   <div key={label}>
                     <label className="block text-sm font-medium text-gray-300 mb-1.5">{label}</label>
-                    <input value={value} onChange={(e) => setter(e.target.value)} placeholder={placeholder}
-                      className="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition" />
+                    <input value={value} onChange={(e) => setter(e.target.value)} placeholder={placeholder} className="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition" />
                   </div>
                 ))}
               </div>
-              <button onClick={() => { if (!shopName.trim()) { setError("Please enter your shop name."); return; } setError(""); setStep(2); }}
-                className="w-full mt-6 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg px-4 py-3 transition">
-                Next: Business Hours →
+              <button onClick={() => { if (!shopName.trim()) { setError("Please enter your shop name."); return; } setError(""); setStep(2); }} className="w-full mt-6 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg px-4 py-3 transition">
+                Next: Business Hours â
               </button>
             </div>
           )}
+
           {step === 2 && (
             <div>
               <h2 className="text-xl font-bold text-white mb-1">Business Hours</h2>
@@ -109,8 +123,7 @@ export default function SetupPage() {
                   return (
                     <div key={day} className="flex items-center gap-3">
                       <div className="w-24 text-sm font-medium text-gray-300">{DAY_LABELS[day]}</div>
-                      <div onClick={() => updateHours(day, "closed", !h.closed)}
-                        className={`w-10 h-5 rounded-full transition ${h.closed?"bg-gray-600":"bg-orange-500"} relative flex items-center cursor-pointer`}>
+                      <div onClick={() => updateHours(day, "closed", !h.closed)} className={`w-10 h-5 rounded-full transition ${h.closed?"bg-gray-600":"bg-orange-500"} relative flex items-center cursor-pointer`}>
                         <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform absolute ${h.closed?"translate-x-0.5":"translate-x-5"}`} />
                       </div>
                       <span className="text-sm text-gray-400">{h.closed?"Closed":"Open"}</span>
@@ -128,11 +141,12 @@ export default function SetupPage() {
                 })}
               </div>
               <div className="flex gap-3 mt-6">
-                <button onClick={() => setStep(1)} className="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg px-4 py-3 transition">← Back</button>
-                <button onClick={() => setStep(3)} className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg px-4 py-3 transition">Next: Services →</button>
+                <button onClick={() => setStep(1)} className="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg px-4 py-3 transition">â Back</button>
+                <button onClick={() => setStep(3)} className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg px-4 py-3 transition">Next: Services â</button>
               </div>
             </div>
           )}
+
           {step === 3 && (
             <div>
               <h2 className="text-xl font-bold text-white mb-1">Services You Offer</h2>
@@ -140,25 +154,22 @@ export default function SetupPage() {
               <div className="space-y-3">
                 {services.map((s, i) => (
                   <div key={i} className="flex gap-2">
-                    <input value={s.name} onChange={(e) => setServices((prev) => prev.map((x,j) => j===i?{...x,name:e.target.value}:x))} placeholder="e.g. Oil Change"
-                      className="flex-1 bg-gray-900 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-orange-500 transition" />
+                    <input value={s.name} onChange={(e) => setServices((prev) => prev.map((x,j) => j===i?{...x,name:e.target.value}:x))} placeholder="e.g. Oil Change" className="flex-1 bg-gray-900 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-orange-500 transition" />
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">$</span>
-                      <input value={s.price} onChange={(e) => setServices((prev) => prev.map((x,j) => j===i?{...x,price:e.target.value}:x))} placeholder="49.99"
-                        className="w-28 bg-gray-900 border border-gray-600 rounded-lg pl-7 pr-3 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-orange-500 transition" />
+                      <input value={s.price} onChange={(e) => setServices((prev) => prev.map((x,j) => j===i?{...x,price:e.target.value}:x))} placeholder="49.99" className="w-28 bg-gray-900 border border-gray-600 rounded-lg pl-7 pr-3 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-orange-500 transition" />
                     </div>
-                    {services.length > 1 && <button onClick={() => setServices((prev) => prev.filter((_,j) => j!==i))} className="p-3 text-gray-400 hover:text-red-400 transition">✕</button>}
+                    {services.length > 1 && <button onClick={() => setServices((prev) => prev.filter((_,j) => j!==i))} className="p-3 text-gray-400 hover:text-red-400 transition">â</button>}
                   </div>
                 ))}
-                <button onClick={() => setServices((prev) => [...prev, { name: "", price: "" }])}
-                  className="w-full border border-dashed border-gray-600 hover:border-orange-500 rounded-lg py-3 text-gray-400 hover:text-orange-400 text-sm transition">
+                <button onClick={() => setServices((prev) => [...prev, { name: "", price: "" }])} className="w-full border border-dashed border-gray-600 hover:border-orange-500 rounded-lg py-3 text-gray-400 hover:text-orange-400 text-sm transition">
                   + Add Service
                 </button>
               </div>
               <div className="flex gap-3 mt-6">
-                <button onClick={() => setStep(2)} className="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg px-4 py-3 transition">← Back</button>
+                <button onClick={() => setStep(2)} className="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg px-4 py-3 transition">â Back</button>
                 <button onClick={handleSubmit} disabled={loading} className="flex-1 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-semibold rounded-lg px-4 py-3 transition flex items-center justify-center gap-2">
-                  {loading ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Setting up...</> : "Launch My AI Receptionist 🚀"}
+                  {loading ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />{shopCreated ? "Assigning phone numberâ¦" : "Setting up..."}</> : (shopCreated ? "Retry Phone Setup ð" : "Launch My AI Receptionist ð")}
                 </button>
               </div>
             </div>
