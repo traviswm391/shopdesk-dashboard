@@ -8,6 +8,29 @@ const DAY_LABELS: Record<string, string> = { monday:"Monday",tuesday:"Tuesday",w
 const TIME_OPTIONS = ["6:00 AM","6:30 AM","7:00 AM","7:30 AM","8:00 AM","8:30 AM","9:00 AM","9:30 AM","10:00 AM","10:30 AM","11:00 AM","11:30 AM","12:00 PM","12:30 PM","1:00 PM","1:30 PM","2:00 PM","2:30 PM","3:00 PM","3:30 PM","4:00 PM","4:30 PM","5:00 PM","5:30 PM","6:00 PM","6:30 PM","7:00 PM","7:30 PM","8:00 PM","8:30 PM","9:00 PM"];
 const DEFAULT_HOURS: BusinessHours = { monday:{open:"8:00 AM",close:"5:00 PM",closed:false},tuesday:{open:"8:00 AM",close:"5:00 PM",closed:false},wednesday:{open:"8:00 AM",close:"5:00 PM",closed:false},thursday:{open:"8:00 AM",close:"5:00 PM",closed:false},friday:{open:"8:00 AM",close:"5:00 PM",closed:false},saturday:{open:"9:00 AM",close:"2:00 PM",closed:false},sunday:{open:"9:00 AM",close:"2:00 PM",closed:true} };
 
+type Tone = "professional" | "friendly" | "concise";
+
+const TONE_OPTIONS: { value: Tone; label: string; description: string; example: string }[] = [
+  {
+    value: "professional",
+    label: "Professional",
+    description: "Formal and business-like",
+    example: "\"Good morning, thank you for calling. How may I assist you today?\"",
+  },
+  {
+    value: "friendly",
+    label: "Friendly",
+    description: "Warm, conversational, approachable",
+    example: "\"Hey there! Thanks for calling â what can we help you with?\"",
+  },
+  {
+    value: "concise",
+    label: "Concise",
+    description: "Short, direct, no-nonsense",
+    example: "\"Thanks for calling. What do you need?\"",
+  },
+];
+
 export default function SettingsPage() {
   const [shop, setShop] = useState<Shop | null>(null);
   const [loading, setLoading] = useState(true);
@@ -18,6 +41,7 @@ export default function SettingsPage() {
   const [address, setAddress] = useState("");
   const [phoneDisplay, setPhoneDisplay] = useState("");
   const [greeting, setGreeting] = useState("");
+  const [tone, setTone] = useState<Tone>("friendly");
   const [hours, setHours] = useState<BusinessHours>({});
   const [services, setServices] = useState<Array<{ name: string; price: string }>>([]);
 
@@ -29,6 +53,7 @@ export default function SettingsPage() {
         setAddress(s.address || "");
         setPhoneDisplay(s.phone_display || "");
         setGreeting(s.greeting || "");
+        setTone((s.tone as Tone) || "friendly");
         setHours(s.business_hours || DEFAULT_HOURS);
         const parsed = (s.services || []).map((svc: string) => {
           const match = svc.match(/^(.+?)\s+\$?([\d.]+)$/);
@@ -66,7 +91,7 @@ export default function SettingsPage() {
       .filter((s) => s.name.trim())
       .map((s) => (s.price ? `${s.name.trim()} $${s.price.trim()}` : s.name.trim()));
     try {
-      const payload = { name: name.trim(), address, phone_display: phoneDisplay, greeting, services: servicesList, business_hours: hours };
+      const payload = { name: name.trim(), address, phone_display: phoneDisplay, greeting, tone, services: servicesList, business_hours: hours };
       const updated = shop ? await updateShop(payload) : await createShop(payload);
       setShop(updated);
       setSaved(true);
@@ -127,6 +152,37 @@ export default function SettingsPage() {
             <div key={label}>
               <label className="block text-sm font-medium text-gray-300 mb-1.5">{label}</label>
               <input value={value} onChange={(e) => setter(e.target.value)} className="input-style" placeholder={placeholder} />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 mb-5">
+        <h2 className="text-base font-semibold text-white mb-1">Agent Personality</h2>
+        <p className="text-gray-400 text-xs mb-5">Choose how your AI receptionist sounds to callers.</p>
+        <div className="space-y-3">
+          {TONE_OPTIONS.map((opt) => (
+            <div
+              key={opt.value}
+              onClick={() => setTone(opt.value)}
+              className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition ${
+                tone === opt.value
+                  ? "border-orange-500 bg-orange-500/5"
+                  : "border-gray-700 hover:border-gray-500"
+              }`}
+            >
+              <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 mt-0.5 flex items-center justify-center ${
+                tone === opt.value ? "border-orange-500" : "border-gray-500"
+              }`}>
+                {tone === opt.value && <div className="w-2 h-2 rounded-full bg-orange-500" />}
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-sm font-medium text-white">{opt.label}</span>
+                  <span className="text-xs text-gray-400">{opt.description}</span>
+                </div>
+                <p className="text-xs text-gray-500 italic">{opt.example}</p>
+              </div>
             </div>
           ))}
         </div>
