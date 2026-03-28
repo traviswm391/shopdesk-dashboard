@@ -22,6 +22,7 @@ export interface Shop {
   phone_display?: string;
   phone_number?: string;
   greeting?: string;
+  tone?: "professional" | "friendly" | "concise";
   services: string[];
   declined_services?: string[];
   business_hours: BusinessHours;
