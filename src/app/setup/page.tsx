@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { createShop, getMyShop } from "@/lib/api";
+import { createShop, getMyShop, provisionShop } from "@/lib/api";
 import type { BusinessHours } from "@/types";
 
 const DAYS = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"] as const;
@@ -43,6 +43,7 @@ export default function SetupPage() {
     const servicesList = services.filter((s) => s.name.trim()).map((s) => (s.price ? `${s.name.trim()} $${s.price.trim()}` : s.name.trim()));
     try {
       await createShop({ name: shopName, address, phone_display: phoneDisplay, greeting: greeting || `Thanks for calling ${shopName}, what can we do for you?`, services: servicesList, business_hours: hours });
+      await provisionShop();
       router.push("/dashboard");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Setup failed."); setLoading(false);
