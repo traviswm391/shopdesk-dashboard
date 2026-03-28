@@ -15,6 +15,8 @@ const TIME_OPTIONS = [
     "6:00 PM","6:30 PM","7:00 PM","7:30 PM","8:00 PM","8:30 PM","9:00 PM"
   ];
 
+const DEFAULT_HOURS: BusinessHours = { monday:{open:"8:00 AM",close:"5:00 PM",closed:false},tuesday:{open:"8:00 AM",close:"5:00 PM",closed:false},wednesday:{open:"8:00 AM",close:"5:00 PM",closed:false},thursday:{open:"8:00 AM",close:"5:00 PM",closed:false},friday:{open:"8:00 AM",close:"5:00 PM",closed:false},saturday:{open:"9:00 AM",close:"2:00 PM",closed:false},sunday:{open:"9:00 AM",close:"2:00 PM",closed:true} };
+
 export default function SettingsPage() {
     const [shop, setShop] = useState<Shop | null>(null);
     const [loading, setLoading] = useState(true);
@@ -48,7 +50,7 @@ export default function SettingsPage() {
           .catch((err: unknown) => {
                     const msg = err instanceof Error ? err.message : "Failed to load settings.";
                     if (msg === "Shop not found") {
-                                setServices([{ name: "", price: "" }]);
+                                setServices([{ name: "", price: "" }]); setHours(DEFAULT_HOURS);
                     } else {
                                 setError(msg);
                     }
@@ -150,7 +152,7 @@ export default function SettingsPage() {
                                                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
                                                       <input value={s.price} onChange={(e) => setServices((prev) => prev.map((x,j) => j===i?{...x,price:e.target.value}:x))} placeholder="49.99" className="w-28 bg-gray-900 border border-gray-600 rounded-lg pl-7 pr-3 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-orange-500 text-sm transition" />
                                       </div>
-                          {services.length > 1 && <button onClick={() => setServices((prev) => prev.filter((_,j) => j!==i))} className="p-2.5 text-gray-500 hover:text-red-400 transition">x</button>}
+                          {services.length > 1 && <button onClick={() => setServices((prev) => prev.filter((_,j) => j!==i))} className="p-2.5 text-gray-500 hover:text-red-400 transition">×</button>}
                         </div>
                       ))}
                                   <button onClick={() => setServices((prev) => [...prev, { name: "", price: "" }])} className="w-full border border-dashed border-gray-600 hover:border-orange-500 rounded-lg py-2.5 text-gray-400 hover:text-orange-400 text-sm transition">
