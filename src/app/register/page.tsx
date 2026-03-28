@@ -12,6 +12,7 @@ export default function RegisterPage() {
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [registered, setRegistered] = useState(false);
 
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
@@ -19,9 +20,19 @@ export default function RegisterPage() {
     if (password.length < 8) { setError("Password must be at least 8 characters."); return; }
     setLoading(true);
     setError("");
-    const { error } = await supabase.auth.signUp({ email, password });
-    if (error) { setError(error.message); setLoading(false); }
-    else { router.push("/setup"); }
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    if (error) {
+      setError(error.message);
+      setLoading(false);
+    } else if (data.user?.identities?.length === 0) {
+      setError("An account with this email already exists. Try signing in.");
+      setLoading(false);
+    } else if (data.session) {
+      router.push("/setup");
+    } else {
+      setRegistered(true);
+      setLoading(false);
+    }
   }
 
   return (
@@ -38,30 +49,52 @@ export default function RegisterPage() {
           </div>
           <p className="text-gray-400 text-sm">Create your account to get started</p>
         </div>
+
         <div className="bg-gray-800 rounded-2xl p-8 border border-gray-700">
-          <h1 className="text-2xl font-bold text-white mb-6">Create account</h1>
-          {error && <div className="bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3 mb-5 text-red-400 text-sm">{error}</div>}
-          <form onSubmit={handleRegister} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">Email</label>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@yourshop.com" required className="input-style" />
+          {registered ? (
+            <div className="text-center">
+              <div className="w-14 h-14 bg-orange-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-7 h-7 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h2 className="text-xl font-bold text-white mb-2">Check your inbox</h2>
+              <p className="text-gray-400 text-sm mb-2">We sent a confirmation link to</p>
+              <p className="text-orange-400 font-medium mb-5">{email}</p>
+              <p className="text-gray-400 text-xs">
+                Click the link in the email to activate your account, then{" "}
+                <Link href="/login" className="text-orange-400 hover:text-orange-300 font-medium">sign in</Link>.
+              </p>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">Password</label>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 8 characters" required className="input-style" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">Confirm Password</label>
-              <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="••••••••" required className="input-style" />
-            </div>
-            <button type="submit" disabled={loading} className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-semibold rounded-lg px-4 py-3 mt-2 transition flex items-center justify-center gap-2">
-              {loading ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Creating account...</> : "Create Account"}
-            </button>
-          </form>
-          <p className="text-center text-gray-400 text-sm mt-6">
-            Already have an account?{" "}
-            <Link href="/login" className="text-orange-400 hover:text-orange-300 font-medium">Sign in</Link>
-          </p>
+          ) : (
+            <>
+              <h1 className="text-2xl font-bold text-white mb-6">Create account</h1>
+              {error && (
+                <div className="bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3 mb-5 text-red-400 text-sm">{error}</div>
+              )}
+              <form onSubmit={handleRegister} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1.5">Email</label>
+                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@yourshop.com" required className="input-style" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1.5">Password</label>
+                  <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 8 characters" required className="input-style" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1.5">Confirm Password</label>
+                  <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="â¢â¢â¢â¢â¢â¢â¢â¢" required className="input-style" />
+                </div>
+                <button type="submit" disabled={loading} className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-semibold rounded-lg px-4 py-3 mt-2 transition flex items-center justify-center gap-2">
+                  {loading ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Creating account...</> : "Create Account"}
+                </button>
+              </form>
+              <p className="text-center text-gray-400 text-sm mt-6">
+                Already have an account?{" "}
+                <Link href="/login" className="text-orange-400 hover:text-orange-300 font-medium">Sign in</Link>
+              </p>
+            </>
+          )}
         </div>
       </div>
     </div>
