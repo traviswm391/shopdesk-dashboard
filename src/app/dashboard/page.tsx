@@ -38,7 +38,6 @@ function computeStats(calls: Call[]): CallStats {
   const avgDur = withDur.length > 0 ? Math.round(withDur.reduce((s, c) => s + (c.duration_seconds || 0), 0) / withDur.length) : 0;
   return { total_calls: total, appointments_booked: booked, conversion_rate: total > 0 ? Math.round((booked / total) * 100) : 0, avg_duration_seconds: avgDur };
 }
-
 function StatSkeleton() {
   return (
     <div className="bg-gray-800 border border-gray-700 rounded-2xl p-5 animate-pulse">
@@ -63,7 +62,6 @@ function CallRowSkeleton() {
     </div>
   );
 }
-
 function CheckIcon({ done }: { done: boolean }) {
   if (done) {
     return (
@@ -76,6 +74,12 @@ function CheckIcon({ done }: { done: boolean }) {
   }
   return <div className="w-5 h-5 rounded-full border-2 border-gray-600 flex-shrink-0" />;
 }
+
+const TONE_LABELS: Record<string, string> = {
+  professional: "Professional",
+  friendly: "Friendly",
+  concise: "Concise",
+};
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -98,7 +102,9 @@ export default function DashboardPage() {
     setError("");
     try {
       const [shopData, callsData, statsData] = await Promise.all([
-        getMyShop(), getCalls(200), getCallStats(),
+        getMyShop(),
+        getCalls(200),
+        getCallStats(),
       ]);
       setShop(shopData);
       setAllCalls(callsData.calls);
@@ -158,7 +164,6 @@ export default function DashboardPage() {
     try { localStorage.setItem("shopdesk_agent_tested", "1"); } catch { /* ignore */ }
     setAgentTested(true);
   }
-
   function dismissChecklist() {
     try { localStorage.setItem("shopdesk_checklist_dismissed", "1"); } catch { /* ignore */ }
     setChecklistDismissed(true);
@@ -210,7 +215,6 @@ export default function DashboardPage() {
   if (!shop) return null;
 
   const agentActive = shop.agent_active !== false;
-
   const checklistItems = [
     { label: "Shop created", done: true },
     { label: "AI phone number active", done: !!shop.phone_number, href: undefined },
@@ -221,6 +225,9 @@ export default function DashboardPage() {
   const completedCount = checklistItems.filter(i => i.done).length;
   const allChecklistDone = completedCount === checklistItems.length;
   const showChecklist = !allChecklistDone && !checklistDismissed;
+
+  const greetingPreview = shop.greeting || `Thanks for calling ${shop.name}, what can we do for you?`;
+  const toneLabel = shop.tone ? TONE_LABELS[shop.tone] : null;
 
   return (
     <div className="p-4 sm:p-8 max-w-5xl">
@@ -241,10 +248,7 @@ export default function DashboardPage() {
             </button>
           </div>
           <div className="w-full bg-gray-700 rounded-full h-1.5 mb-4">
-            <div
-              className="bg-orange-500 h-1.5 rounded-full transition-all duration-500"
-              style={{ width: `${(completedCount / checklistItems.length) * 100}%` }}
-            />
+            <div className="bg-orange-500 h-1.5 rounded-full transition-all duration-500" style={{ width: `${(completedCount / checklistItems.length) * 100}%` }} />
           </div>
           <div className="space-y-2.5">
             {checklistItems.map(({ label, done, href }) => (
@@ -263,7 +267,8 @@ export default function DashboardPage() {
 
       <div className="flex gap-1 mb-5 bg-gray-800 border border-gray-700 rounded-xl p-1 w-fit">
         {(["all", "today", "week", "month"] as DateRange[]).map((r) => (
-          <button key={r} onClick={() => setDateRange(r)} className={`px-4 py-1.5 rounded-lg text-sm font-medium transition ${dateRange === r ? "bg-orange-500 text-white" : "text-gray-400 hover:text-white"}`}>
+          <button key={r} onClick={() => setDateRange(r)}
+            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition ${dateRange === r ? "bg-orange-500 text-white" : "text-gray-400 hover:text-white"}`}>
             {r === "all" ? "All Time" : r === "today" ? "Today" : r === "week" ? "7 Days" : "30 Days"}
           </button>
         ))}
@@ -320,11 +325,17 @@ export default function DashboardPage() {
                 Test My Agent
               </button>
               {showGreeting && (
-                <div className="absolute right-0 top-14 z-10 w-72 bg-gray-700 border border-gray-600 rounded-xl p-4 shadow-xl">
+                <div className="absolute right-0 top-14 z-10 w-80 bg-gray-700 border border-gray-600 rounded-xl p-4 shadow-xl">
                   <p className="text-xs text-gray-400 uppercase tracking-wider mb-2">Your AI will answer:</p>
                   <p className="text-sm text-white italic mb-3">
-                    &ldquo;{shop.greeting || `Thanks for calling ${shop.name}, what can we do for you?`}&rdquo;
+                    &ldquo;{greetingPreview}&rdquo;
                   </p>
+                  {toneLabel && (
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-xs text-gray-500">Tone:</span>
+                      <span className="text-xs bg-orange-500/15 text-orange-400 px-2 py-0.5 rounded-full font-medium">{toneLabel}</span>
+                    </div>
+                  )}
                   <a
                     href={`tel:${shop.phone_number}`}
                     onClick={() => { setShowGreeting(false); markAgentTested(); }}
@@ -412,10 +423,12 @@ export default function DashboardPage() {
               <div className="px-6 py-4 border-t border-gray-700 flex items-center justify-between">
                 <p className="text-xs text-gray-400">{filteredCalls.length} calls Â· page {page} of {totalPages}</p>
                 <div className="flex gap-2">
-                  <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 disabled:opacity-40 text-white text-sm rounded-lg transition">
+                  <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+                    className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 disabled:opacity-40 text-white text-sm rounded-lg transition">
                     â Prev
                   </button>
-                  <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 disabled:opacity-40 text-white text-sm rounded-lg transition">
+                  <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+                    className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 disabled:opacity-40 text-white text-sm rounded-lg transition">
                     Next â
                   </button>
                 </div>
