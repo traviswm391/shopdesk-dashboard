@@ -9,26 +9,10 @@ const TIME_OPTIONS = ["6:00 AM","6:30 AM","7:00 AM","7:30 AM","8:00 AM","8:30 AM
 const DEFAULT_HOURS: BusinessHours = { monday:{open:"8:00 AM",close:"5:00 PM",closed:false},tuesday:{open:"8:00 AM",close:"5:00 PM",closed:false},wednesday:{open:"8:00 AM",close:"5:00 PM",closed:false},thursday:{open:"8:00 AM",close:"5:00 PM",closed:false},friday:{open:"8:00 AM",close:"5:00 PM",closed:false},saturday:{open:"9:00 AM",close:"2:00 PM",closed:false},sunday:{open:"9:00 AM",close:"2:00 PM",closed:true} };
 
 type Tone = "professional" | "friendly" | "concise";
-
 const TONE_OPTIONS: { value: Tone; label: string; description: string; example: string }[] = [
-  {
-    value: "professional",
-    label: "Professional",
-    description: "Formal and business-like",
-    example: "\"Good morning, thank you for calling. How may I assist you today?\"",
-  },
-  {
-    value: "friendly",
-    label: "Friendly",
-    description: "Warm, conversational, approachable",
-    example: "\"Hey there! Thanks for calling â what can we help you with?\"",
-  },
-  {
-    value: "concise",
-    label: "Concise",
-    description: "Short, direct, no-nonsense",
-    example: "\"Thanks for calling. What do you need?\"",
-  },
+  { value: "professional", label: "Professional", description: "Formal and business-like", example: '"Good morning, thank you for calling. How may I assist you today?"' },
+  { value: "friendly", label: "Friendly", description: "Warm, conversational, approachable", example: '"Hey there! Thanks for calling — what can we help you with?"' },
+  { value: "concise", label: "Concise", description: "Short, direct, no-nonsense", example: '"Thanks for calling. What do you need?"' },
 ];
 
 export default function SettingsPage() {
@@ -42,6 +26,7 @@ export default function SettingsPage() {
   const [phoneDisplay, setPhoneDisplay] = useState("");
   const [greeting, setGreeting] = useState("");
   const [tone, setTone] = useState<Tone>("friendly");
+  const [notificationPhone, setNotificationPhone] = useState("");
   const [hours, setHours] = useState<BusinessHours>({});
   const [services, setServices] = useState<Array<{ name: string; price: string }>>([]);
 
@@ -54,6 +39,7 @@ export default function SettingsPage() {
         setPhoneDisplay(s.phone_display || "");
         setGreeting(s.greeting || "");
         setTone((s.tone as Tone) || "friendly");
+        setNotificationPhone(s.notification_phone || "");
         setHours(s.business_hours || DEFAULT_HOURS);
         const parsed = (s.services || []).map((svc: string) => {
           const match = svc.match(/^(.+?)\s+\$?([\d.]+)$/);
@@ -80,18 +66,13 @@ export default function SettingsPage() {
   }
 
   async function handleSave() {
-    if (!name.trim()) {
-      setError("Shop name is required.");
-      return;
-    }
-    setSaving(true);
-    setError("");
-    setSaved(false);
+    if (!name.trim()) { setError("Shop name is required."); return; }
+    setSaving(true); setError(""); setSaved(false);
     const servicesList = services
       .filter((s) => s.name.trim())
       .map((s) => (s.price ? `${s.name.trim()} $${s.price.trim()}` : s.name.trim()));
     try {
-      const payload = { name: name.trim(), address, phone_display: phoneDisplay, greeting, tone, services: servicesList, business_hours: hours };
+      const payload = { name: name.trim(), address, phone_display: phoneDisplay, greeting, tone, notification_phone: notificationPhone, services: servicesList, business_hours: hours };
       const updated = shop ? await updateShop(payload) : await createShop(payload);
       setShop(updated);
       setSaved(true);
@@ -102,7 +83,6 @@ export default function SettingsPage() {
       setSaving(false);
     }
   }
-
   if (loading) return (
     <div className="flex items-center justify-center h-screen">
       <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
@@ -113,7 +93,7 @@ export default function SettingsPage() {
     <div className="p-8 max-w-2xl">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-white">Settings</h1>
-        <p className="text-gray-400 text-sm mt-0.5">Update your shop info â changes sync to your AI receptionist automatically.</p>
+        <p className="text-gray-400 text-sm mt-0.5">Update your shop info — changes sync to your AI receptionist automatically.</p>
       </div>
 
       {!shop && !error && (
@@ -121,9 +101,7 @@ export default function SettingsPage() {
           Welcome! Fill in your shop details below to get started.
         </div>
       )}
-      {error && (
-        <div className="bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3 mb-6 text-red-400 text-sm">{error}</div>
-      )}
+      {error && <div className="bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3 mb-6 text-red-400 text-sm">{error}</div>}
       {saved && (
         <div className="bg-green-500/10 border border-green-500/30 rounded-lg px-4 py-3 mb-6 text-green-400 text-sm">
           Saved! Your AI receptionist has been updated.
@@ -162,18 +140,10 @@ export default function SettingsPage() {
         <p className="text-gray-400 text-xs mb-5">Choose how your AI receptionist sounds to callers.</p>
         <div className="space-y-3">
           {TONE_OPTIONS.map((opt) => (
-            <div
-              key={opt.value}
-              onClick={() => setTone(opt.value)}
-              className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition ${
-                tone === opt.value
-                  ? "border-orange-500 bg-orange-500/5"
-                  : "border-gray-700 hover:border-gray-500"
-              }`}
+            <div key={opt.value} onClick={() => setTone(opt.value)}
+              className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition ${tone === opt.value ? "border-orange-500 bg-orange-500/5" : "border-gray-700 hover:border-gray-500"}`}
             >
-              <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 mt-0.5 flex items-center justify-center ${
-                tone === opt.value ? "border-orange-500" : "border-gray-500"
-              }`}>
+              <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 mt-0.5 flex items-center justify-center ${tone === opt.value ? "border-orange-500" : "border-gray-500"}`}>
                 {tone === opt.value && <div className="w-2 h-2 rounded-full bg-orange-500" />}
               </div>
               <div className="min-w-0">
@@ -187,7 +157,6 @@ export default function SettingsPage() {
           ))}
         </div>
       </div>
-
       <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 mb-5">
         <h2 className="text-base font-semibold text-white mb-5">Business Hours</h2>
         <div className="space-y-3">
@@ -196,8 +165,7 @@ export default function SettingsPage() {
             return (
               <div key={day} className="flex items-center gap-3">
                 <div className="w-24 text-sm font-medium text-gray-300">{DAY_LABELS[day]}</div>
-                <div
-                  onClick={() => updateHours(day, "closed", !h.closed)}
+                <div onClick={() => updateHours(day, "closed", !h.closed)}
                   className={`w-10 h-5 rounded-full transition cursor-pointer ${h.closed ? "bg-gray-600" : "bg-orange-500"} relative flex items-center`}
                 >
                   <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform absolute ${h.closed ? "translate-x-0.5" : "translate-x-5"}`} />
@@ -218,7 +186,7 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 mb-6">
+      <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 mb-5">
         <h2 className="text-base font-semibold text-white mb-5">Services</h2>
         <div className="space-y-3">
           {services.map((s, i) => (
@@ -239,22 +207,36 @@ export default function SettingsPage() {
                 />
               </div>
               {services.length > 1 && (
-                <button onClick={() => setServices((prev) => prev.filter((_, j) => j !== i))} className="p-2.5 text-gray-500 hover:text-red-400 transition">Ã</button>
+                <button onClick={() => setServices((prev) => prev.filter((_, j) => j !== i))} className="p-2.5 text-gray-500 hover:text-red-400 transition">×</button>
               )}
             </div>
           ))}
-          <button
-            onClick={() => setServices((prev) => [...prev, { name: "", price: "" }])}
+          <button onClick={() => setServices((prev) => [...prev, { name: "", price: "" }])}
             className="w-full border border-dashed border-gray-600 hover:border-orange-500 rounded-lg py-2.5 text-gray-400 hover:text-orange-400 text-sm transition"
-          >
-            + Add Service
-          </button>
+          >+ Add Service</button>
         </div>
       </div>
 
-      <button
-        onClick={handleSave}
-        disabled={saving}
+      <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 mb-6">
+        <h2 className="text-base font-semibold text-white mb-1">Notifications</h2>
+        <p className="text-gray-400 text-xs mb-5">Receive SMS alerts for missed calls and new bookings.</p>
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-1.5">
+            Notification Phone Number
+          </label>
+          <input
+            value={notificationPhone}
+            onChange={(e) => setNotificationPhone(e.target.value)}
+            className="input-style"
+            placeholder="+16155550100"
+          />
+          <p className="text-xs text-gray-500 mt-2">
+            Include country code (e.g. +1 for US). Leave blank to disable SMS alerts.
+          </p>
+        </div>
+      </div>
+
+      <button onClick={handleSave} disabled={saving}
         className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-semibold rounded-xl px-4 py-3.5 transition"
       >
         {saving ? "Saving & updating AI..." : "Save Changes"}
